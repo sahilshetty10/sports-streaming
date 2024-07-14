@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watch</title>
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"
+    ></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f4f4f4;
+      }
+
+      .header {
+        width: 100%;
+        background-color: #333;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        box-sizing: border-box;
+      }
+
+      .header a {
+        color: white;
+        text-decoration: none;
+        font-size: 1.2rem;
+        margin: 0 10px;
+      }
+
+      .player-container {
+        width: 100%;
+        max-width: 1200px;
+        padding: 20px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      #player,
+      .loading,
+      .error {
+        width: 100%;
+        display: none;
+        aspect-ratio: 16 / 9;
+      }
+
+      .loading,
+      .error {
+        font-size: 1.5rem;
+        color: #333;
+      }
+
+      .error-message {
+        margin-top: 10px;
+        font-size: 1rem;
+        color: red;
+      }
+
+      .error a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .error a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <a href="/">&#8592; Back to Home</a>
+      <a href="#" id="refresh">&#8635; Refresh</a>
+    </div>
+    <div class="player-container">
+      <div id="loading" class="loading">Loading...</div>
+      <div id="player"></div>
+      <div id="error" class="error">
+        <div id="errorMessage" class="error-message">
+          Failed to load video. <a href="#" id="retry">Retry</a>
+        </div>
+      </div>
+    </div>
+    <script>
+      function fetchVideo() {
+        const playerElement = document.getElementById("player");
+        const loadingElement = document.getElementById("loading");
+        const errorElement = document.getElementById("error");
+        const errorMessageElement = document.getElementById("errorMessage");
+
+        loadingElement.style.display = "block";
+        playerElement.style.display = "none";
+        errorElement.style.display = "none";
+
+        let url = window.location.href;
+        let id = url.split("/").pop();
+
+        fetch(`/api/watch/${id}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch video: ${response.statusText}`);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            loadingElement.style.display = "none";
+            if (data.src) {
+              let player = new Clappr.Player({
+                source: data.src,
+                parentId: "#player",
+                width: "100%",
+                height: "100%",
+                autoplay: true,
+              });
+              playerElement.style.display = "block";
+            } else {
+              errorElement.style.display = "block";
+              errorMessageElement.textContent =
+                "Failed to load video. Please try again later.";
+            }
+          })
+          .catch((error) => {
+            loadingElement.style.display = "none";
+            errorElement.style.display = "block";
+            return error.text(); // Get the response body text
+          })
+          .then((errorMessage) => {
+            if (errorMessage) {
+              errorMessageElement.textContent = `Error: ${errorMessage}`;
+            }
+          });
+      }
+
+      document.getElementById("refresh").addEventListener("click", (e) => {
+        e.preventDefault();
+        fetchVideo();
+      });
+
+      document.getElementById("retry").addEventListener("click", (e) => {
+        e.preventDefault();
+        fetchVideo();
+      });
+
+      fetchVideo();
+    </script>
+  </body>
+</html>
